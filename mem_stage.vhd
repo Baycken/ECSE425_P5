@@ -50,20 +50,26 @@ elsif (rising_edge(clk)) then
 	mem_read<='0';
 	mem_write<='0';
 	mem_write_data<=x"00000000";
-	mem_addr<=0;
+	mem_addr<=x"00000000";
 	wb_data<=x"00000000";
 	wb_dest_reg<=x"00000000";
 	stall<='0';
 
-	if wait_for_data = '1' then--get data from previous load
-		wait_for_data<='0';
-		wb_dest_reg<=load_reg;
-		wb_data<=mem_read_data;
+	if wait_for_data = '1' then
 		stall<='1';
+		report "Waiting for rising edge";
+		if mem_waitrequest='0' then	--Data from previous load is ready 
+			wait for 2 ns;
+			report "Got rising edge";
+			wait_for_data<='0';
+			wb_dest_reg<=load_reg;
+			wb_data<=mem_read_data;
+			stall<='1';
+		end if;
 	elsif (ex_load = '1') then --read from mem and put it into register
 		--result is mem address
 		mem_read <='1';
-		mem_addr <= to_integer(unsigned(ex_result));
+		mem_addr <= ex_result;
 
 		--dest reg is dest reg
 		--wait a cycles to retrieve mem
@@ -71,11 +77,11 @@ elsif (rising_edge(clk)) then
 		load_reg<=ex_dest_reg;
 		stall<='1';
 		
-	elsif (ex_store = '1') then
+	elsif (ex_store = '1') then --write to mem
 
 		--dest_reg is address
 		mem_write <='1';
-		mem_addr <= to_integer(unsigned(ex_dest_reg));
+		mem_addr <= ex_dest_reg;
 
 		--result is data into address
 		mem_write_data <= ex_result;
