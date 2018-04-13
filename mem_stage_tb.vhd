@@ -43,20 +43,20 @@ component cache IS
 		clock: IN STD_LOGIC;
 		reset: IN STD_LOGIC;
 
-		s_address: in std_logic_vector (31 downto 0);
-		s_memread: in std_logic;	
+		s_addr: in std_logic_vector (31 downto 0);
+		s_read: in std_logic;	
 		s_readdata: out std_logic_vector (31 downto 0);
-		s_memwrite: in std_logic;
+		s_write: in std_logic;
 		s_writedata: in std_logic_vector (31 downto 0);
 		s_waitrequest: out std_logic; 
 		
 
-		m_address: in integer RANGE 0 TO 8191;
-		m_memread: in std_logic;	
-		m_readdata: out std_logic_vector (31 downto 0);
-		m_memwrite: in std_logic;
-		m_writedata: in std_logic_vector (31 downto 0);
-		m_waitrequest: out std_logic
+		m_addr: out integer RANGE 0 TO 8191;
+		m_read: out std_logic;	
+		m_readdata: in std_logic_vector (7 downto 0);
+		m_write: out std_logic;
+		m_writedata: out std_logic_vector (7 downto 0);
+		m_waitrequest: in std_logic
 	);
 end component;
 component memory IS
@@ -67,11 +67,11 @@ component memory IS
 	);
 	PORT (
 		clock: IN STD_LOGIC;
-		writedata: IN STD_LOGIC_VECTOR (31 DOWNTO 0);
+		writedata: IN STD_LOGIC_VECTOR (7 DOWNTO 0);
 		address: IN INTEGER RANGE 0 TO ram_size-1;
 		memwrite: IN STD_LOGIC;
 		memread: IN STD_LOGIC;
-		readdata: OUT STD_LOGIC_VECTOR (31 DOWNTO 0);
+		readdata: OUT STD_LOGIC_VECTOR (7 DOWNTO 0);
 		waitrequest: OUT STD_LOGIC
 	);
 end component;
@@ -97,12 +97,12 @@ signal cache_read : std_logic;
 signal cache_addr : std_logic_vector (31 downto 0);
 signal cache_write_data : std_logic_vector (31 downto 0);
 
-signal mem_read_data : std_logic_vector (31 downto 0);
-signal mem_waitrequest : std_logic;
-signal mem_write : std_logic;
-signal mem_read : std_logic;
-signal mem_addr : integer:=0;
-signal mem_write_data : std_logic_vector (31 downto 0);
+signal s_mem_read_data : std_logic_vector (7 downto 0);
+signal s_mem_waitrequest : std_logic;
+signal s_mem_write : std_logic;
+signal s_mem_read : std_logic;
+signal s_mem_addr : integer:=0;
+signal s_mem_write_data : std_logic_vector (7 downto 0);
 
 
 
@@ -132,32 +132,40 @@ port map(
 );
 
 cac: cache
+generic map(
+	ram_size=>32768
+)
 port map(
 	clock=>clk,	
 	reset=>reset,
 	s_writedata=>cache_write_data,
-	s_address=>cache_addr,
-	s_memwrite=>cache_write,
-	s_memread=>cache_read,
+	s_addr=>cache_addr,
+	s_write=>cache_write,
+	s_read=>cache_read,
 	s_readdata=>cache_read_data,
 	s_waitrequest=>cache_waitrequest,
 	
-	m_address=>mem_addr,
-	m_memread=>mem_read,
-	m_readdata=>mem_read_data,
-	m_memwrite=>mem_write,
-	m_writedata=>mem_write_data,
-	m_waitrequest=>mem_waitrequest
+	m_addr=>s_mem_addr,
+	m_read=>s_mem_read,
+	m_readdata=>s_mem_read_data,
+	m_write=>s_mem_write,
+	m_writedata=>s_mem_write_data,
+	m_waitrequest=>s_mem_waitrequest
 );
 mem: memory
+generic map(
+	ram_size=>32768,
+	mem_delay=>10 ns,
+	clock_period=>1 ns
+)
 port map(
 	clock=>clk,
-	writedata=>mem_write_data,
-	address=>mem_addr,
-	memwrite=>mem_write,
-	memread=>mem_read,
-	readdata=>mem_read_data,
-	waitrequest=>mem_waitrequest
+	writedata=>s_mem_write_data,
+	address=>s_mem_addr,
+	memwrite=>s_mem_write,
+	memread=>s_mem_read,
+	readdata=>s_mem_read_data,
+	waitrequest=>s_mem_waitrequest
 );
 clk_process : process
 begin
@@ -176,7 +184,7 @@ begin
 	
 	wait for clk_period/2;
 
-	--test passing info from ex to wb PASS
+	--test passing info from ex to wb (No Memory Op) PASS
 	wait for clk_period;
 	ex_result<=x"00000044";
 	ex_dest_reg<=x"00000002";
@@ -187,8 +195,8 @@ begin
 	ex_result<=x"00000000";
 	ex_dest_reg<=x"00000000";
 	wait for clk_period;
-
-	--test store:write x"00001234" to 12 PASS
+	
+	--test store: write x"00001234" to 12 PASS
 	ex_store<='1';
 	ex_result<=x"00001234";
 	ex_dest_reg<=x"00000012";
@@ -197,7 +205,7 @@ begin
 	ex_result<=x"00000000";
 	ex_dest_reg<=x"00000000";
 	wait for clk_period;
-
+	wait for 250 ns;
 	--test load: read from 12 PASS
 	ex_load <= '1';
 	ex_result<=x"00000012";
@@ -207,7 +215,7 @@ begin
 	ex_result<=x"00000000";
 	ex_dest_reg<=x"00000000";
 	wait for clk_period;
-
+	wait for 250 ns;
 	wait;
 
 end process;
