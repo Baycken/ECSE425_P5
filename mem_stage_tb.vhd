@@ -216,6 +216,25 @@ begin
 	ex_dest_reg<=x"00000000";
 	wait for clk_period;
 	wait for 250 ns;
+	--Now test a load (read) miss, read from addr 20, put data in reg 25
+	ex_load<='1';
+	ex_result<=x"00000020";
+	ex_dest_reg<=x"00000025";
+	wait for clk_period;
+	ex_load<='0';
+	ex_result<=x"00000000";
+	ex_dest_reg<=x"00000000";
+	wait for 236 ns;	--Should be done with read now
+	--wait for 10 ns;
+	--Now test store (write) cache hit, write 2222 to addr 12
+	ex_store<='1';
+	ex_result<=x"00002222";
+	ex_dest_reg<=x"00000012";
+	wait for clk_period;
+	ex_store<='0';
+	ex_result<=x"00000000";
+	ex_dest_reg<=x"00000000";
+	
 	wait;
 
 end process;
