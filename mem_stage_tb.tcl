@@ -8,15 +8,18 @@ proc AddWaves {} {
     add wave -position end sim:/mem_stage_tb/ex_store
     add wave -position end sim:/mem_stage_tb/wb_data
     add wave -position end sim:/mem_stage_tb/wb_dest_reg
-    add wave -position end sim:/mem_stage_tb/mem_read_data
-    add wave -position end sim:/mem_stage_tb/mem_waitrequest
-    add wave -position end sim:/mem_stage_tb/mem_write
-    add wave -position end sim:/mem_stage_tb/mem_read
-    add wave -position end sim:/mem_stage_tb/mem_addr
-    add wave -position end sim:/mem_stage_tb/mem_write_data
+    add wave -position end sim:/mem_stage_tb/s_mem_read_data
+    add wave -position end sim:/mem_stage_tb/s_mem_waitrequest
+    add wave -position end sim:/mem_stage_tb/s_mem_write
+    add wave -position end sim:/mem_stage_tb/s_mem_read
+    add wave -position end sim:/mem_stage_tb/s_mem_addr
+    add wave -position end sim:/mem_stage_tb/s_mem_write_data
     add wave -position end sim:/mem_stage_tb/stall
-
-
+	add wave -position end sim:/mem_stage_tb/cache_read
+	add wave -position end sim:/mem_stage_tb/cache_write
+	add wave -position end sim:/mem_stage_tb/cache_write_data
+	add wave -position end sim:/mem_stage_tb/cache_read_data
+	add wave -position end sim:/mem_stage_tb/cache_waitrequest
 
 }
 
@@ -24,8 +27,9 @@ vlib work
 
 ;# Compile components if any
 vcom mem_stage.vhd
-vcom data_memory.vhd
+vcom memory.vhd
 vcom mem_stage_tb.vhd
+vcom cache.vhd
 
 ;# Start simulation
 vsim mem_stage_tb
@@ -36,4 +40,4 @@ vsim mem_stage_tb
 ;# Add the waves
 AddWaves
 
-run 100ns
+run 1100ns
