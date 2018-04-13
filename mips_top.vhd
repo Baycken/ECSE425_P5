@@ -8,6 +8,8 @@ PORT (
    clk_i : IN STD_LOGIC;
    rst_i : IN STD_LOGIC;
 
+   mips_if_test: out std_logic_vector(31 downto 0);
+
    -- Interface to instruction cache
    pc_o : OUT STD_LOGIC_VECTOR (31 DOWNTO 0);
    inst_read_o : OUT STD_LOGIC;
@@ -33,6 +35,7 @@ COMPONENT fetch IS
 	PORT(
 	  	clock : in std_logic;
 		reset : in std_logic;
+		if_id_test: out std_logic_vector(31 downto 0);
 
 		-- Avalon interface --
 		--communication with pc (getting and sending back the incremented one or the completely new pc)
@@ -171,7 +174,6 @@ END COMPONENT;
 SIGNAL if_pc : STD_LOGIC_VECTOR(31 downto 0);
 SIGNAL if_instr : STD_LOGIC_VECTOR(31 downto 0);
 
-
 SIGNAL id_hazard : STD_LOGIC;
 SIGNAL id_pc : STD_LOGIC_VECTOR(31 downto 0);
 SIGNAL id_instr : STD_LOGIC_VECTOR(31 downto 0);
@@ -204,6 +206,7 @@ fetch_inst: fetch
 PORT MAP(
 	clock => clk_i,
 	reset => rst_i,
+	if_id_test=>mips_if_test,
 
 	--communication with pc (getting and sending back the incremented one or the completely new pc)
 	addr => (others => '0'),

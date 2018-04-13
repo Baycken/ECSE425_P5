@@ -96,11 +96,11 @@ if rising_edge(clk) then
 				result_local(31 downto  32-to_integer(signed(shift))) <= (others => '0');
 			when "001000"	=>	pc_out <= regs; --Jump Register
 				is_new_pc<='1'; 
-			when others	=>	report "Instruction not supported";
+			when others	=>	report "R-Type Instruction not supported";
 		end case;
 
 	elsif ((opcode = "000011") or (opcode = "000010")) then --J type Inst
-		case func is 
+		case opcode is 
 			when "000010" => pc_out<= "000000" & target; --jump
 				is_new_pc<='1'; --Let IF know to take new PC
 			when "000011" => --Jump and Link
@@ -108,12 +108,12 @@ if rising_edge(clk) then
 				result_local<=std_logic_vector(unsigned(pc_in) + x"00000001"); --old PC to be stored in register 31
 				pc_out<= "000000" & target; --Assign new PC to be target
 				is_new_pc<='1';
-			when others	=>	report "Instruction not supported";
+			when others	=>	report "J-Type Instruction not supported";
 		end case;
 
 	else	--I type inst
 		dest_reg_local<=regt;
-		case func is
+		case opcode is
 			when "001000" => result_local<=std_logic_vector(signed(regs) + signed(immed));	--Add Immed
 			when "001010" => --Set Less Than Immed
 				if(to_integer(signed(regs))<to_integer(signed(immed))) then
@@ -137,7 +137,7 @@ if rising_edge(clk) then
 				if(regs/=regt) then
 					pc_out<=std_logic_vector(unsigned(pc_in)+unsigned(immed));
 				end if;
-			when others=> report "Instruction not supported";
+			when others=> report "I-Type Instruction not supported";
 		end case;
 	end if;
 result<=result_local;	--Assert the result to the output

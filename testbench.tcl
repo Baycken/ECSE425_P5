@@ -7,6 +7,7 @@ proc AddWaves {} {
     add wave -position end sim:/testbench/inst_memread
     add wave -position end sim:/testbench/inst_waitrequest
     add wave -position end sim:/testbench/inst_address
+    add wave -position end sim:/testbench/mips_if_test
 }
 
 vlib work

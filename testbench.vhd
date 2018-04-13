@@ -47,7 +47,7 @@ component mips32 is
 PORT (
    clk_i : IN STD_LOGIC;
    rst_i : IN STD_LOGIC;
-
+   mips_if_test: out std_logic_vector(31 downto 0);
    -- Interface to instruction cache
    pc_o : OUT STD_LOGIC_VECTOR (31 DOWNTO 0);
    inst_read_o : OUT STD_LOGIC;
@@ -69,6 +69,8 @@ end component;
 signal reset : std_logic := '0';
 signal clk : std_logic := '0';
 constant clk_period : time := 2 ns;
+
+signal mips_if_test : std_logic_vector(31 downto 0);
 
 signal pc_o : STD_LOGIC_VECTOR(31 DOWNTO 0);
 signal inst_read_o : STD_LOGIC;
@@ -135,6 +137,7 @@ port map(
 
 	clk_i => clk,
 	rst_i => reset,
+	mips_if_test => mips_if_test
  
 	pc_o => pc_o,
 	inst_read_o => inst_read_o,
