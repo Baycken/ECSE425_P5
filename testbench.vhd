@@ -182,6 +182,9 @@ begin
 	
 	file_open(program,"program.txt", read_mode);
 	for i in 0 to 1023 loop
+		--inst_memread <= '1';
+--		wait for clk_period;
+--		inst_memread <= '0';
 		if (not endfile(program)) then
 			--if (clk'event and clk = '1') then
               		readline(program, program_line);
@@ -241,3 +244,4 @@ begin
 
 end process;
 end;
+

@@ -16,10 +16,9 @@ port(
 	--test
 	
 	--just used to connect the instructionMemory in instructionFetch (so we can leave them floating in the instructionMemory)
-	s_write : in std_logic; --not using
+	--s_write : in std_logic; --not using
 	s_writedata : in std_logic_vector (31 downto 0); --not using 
-	s_waitrequest : out std_logic; -- not really using it
-
+	
 	--communication with ID stage
 	hazard_detect : in std_logic:='0';
 
@@ -29,7 +28,7 @@ port(
 
 	--communication with decode stage (**no need to write so comment)
 	instruction : out std_logic_vector(31 downto 0);
-	instruction_read : out std_logic;
+	--instruction_read : out std_logic;
 	current_pc_to_dstage : out std_logic_vector(31 downto 0)
 );
 
@@ -38,8 +37,11 @@ end fetch;
 architecture arch of fetch is
 
 --declarations
-signal pc_address : INTEGER RANGE 0 TO 1023;
-signal instruction_read_sig : std_logic:='1';
+signal pc_address : INTEGER RANGE 0 TO 1023:=to_integer(unsigned(addr));
+signal instruction_read_sig : std_logic:='0';
+signal wait_req : std_logic;
+--signal s_write_sig : std_logic:='0';
+signal data : std_logic_vector(31 downto 0);
 
 component instr_mem
     GENERIC(
@@ -60,30 +62,32 @@ end component;
 
 begin
 
-U1: component instr_mem
---generic map (ram_size,mem_delay,clock_period)
-port map (clock,s_writedata,pc_address,s_write,instruction_read_sig,instruction,s_waitrequest);
-
-
-	inst_get: process(clock)
+U1: component instr_mem port map (clock,s_writedata,pc_address,'0',instruction_read_sig,data,wait_req);
+	
+inst_get: process (clock)
 	begin
 		if (clock'event and clock='1') then 
 			if(pc_address < 1022) then
-				if(hazard_detect = '0') then
-					if(ex_is_new_pc = '1') then 
-						pc_address <= to_integer(unsigned(ex_pc));
-					else
-						pc_address <= pc_address + 1;
+				--instruction_read_sig <= '1';
+			--	wait for 1 ns;
+			--	instruction_read_sig <= '0';
+					if(hazard_detect = '0') then
+						if(ex_is_new_pc = '1') then 
+							pc_address <= to_integer(unsigned(ex_pc));
+						else
+							pc_address <= pc_address + 1;
+						end if;
+					else		
+						pc_address <= pc_address;
 					end if;
-				else		
-					pc_address <= pc_address;
-				end if;
+				--instruction_read_sig <= '0';
+				--end if;	
 			end if;
 		end if;
 	end process;
 
-instruction_read_sig <= '1';
 current_pc_to_dstage <= std_logic_vector(to_unsigned(pc_address,32));
-instruction_read <= instruction_read_sig;
+--instruction_read <= instruction_read_sig;
+instruction <= data;
 
 end arch;

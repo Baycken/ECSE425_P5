@@ -39,9 +39,8 @@ COMPONENT fetch IS
 		addr : in std_logic_vector (31 downto 0);
 		--reply_back_pc : out std_logic_vector (31 downto 0);
 		--test
-		s_write : in std_logic;
+		--s_write : in std_logic;
 		s_writedata : in std_logic_vector (31 downto 0);
-		s_waitrequest : out std_logic; -- not really using it
 
 		--communication with ID stage
 		hazard_detect : in std_logic:='0';
@@ -52,7 +51,7 @@ COMPONENT fetch IS
 
 		--communication with decode stage (**no need to write so comment)
 		instruction : out std_logic_vector(31 downto 0);
-		instruction_read : out std_logic;
+		--instruction_read : out std_logic;
 		current_pc_to_dstage : out std_logic_vector(31 downto 0)
 	);
 END COMPONENT;
@@ -208,9 +207,8 @@ PORT MAP(
 
 	--communication with pc (getting and sending back the incremented one or the completely new pc)
 	addr => (others => '0'),
-	s_write => '0',
+	--s_write => '0',
 	s_writedata => (others => '0'),
-	s_waitrequest => open,
 
 	--communication with ID stage
 	hazard_detect => id_hazard,
@@ -221,7 +219,7 @@ PORT MAP(
 
 	--communication with decode stage (**no need to write so comment)
 	instruction => if_instr,
-	instruction_read  => open,
+	--instruction_read  => open,
 	current_pc_to_dstage => if_pc
 );
 
@@ -329,3 +327,4 @@ PORT MAP(
 );
 
 END;
+
