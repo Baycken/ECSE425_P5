@@ -32,7 +32,9 @@ end mem_stage;
 
 architecture mem_arch of mem_stage is
 
-signal wait_for_data : std_logic:='0'; --load takes two cycles
+signal wait_for_data_load : std_logic:='0'; --load takes two cycles
+signal wait_for_data_store : std_logic:='0';
+signal found_zero: std_logic:='0'; 
 signal load_reg : std_logic_vector(31 downto 0); --register address for load
 
 begin
@@ -55,15 +57,26 @@ elsif (rising_edge(clk)) then
 	wb_dest_reg<=x"00000000";
 	stall<='0';
 
-	if wait_for_data = '1' then
+	if wait_for_data_load = '1' then
 		stall<='1';
-		report "Waiting for rising edge";
-		if mem_waitrequest='0' then	--Data from previous load is ready 
-			wait for 2 ns;
-			report "Got rising edge";
-			wait_for_data<='0';
+		if mem_waitrequest='0' then	--Data from previous load is ready
+			found_zero<='1';
+			--wait for 2 ns;
+		elsif mem_waitrequest='1' and found_zero='1' then --rising edge found, data ready
+			found_zero<='0';
+			wait_for_data_load<='0';
+			--Only update outputs to wb for load(reading)
 			wb_dest_reg<=load_reg;
 			wb_data<=mem_read_data;
+			stall<='1';
+		end if;
+	elsif wait_for_data_store='1' then	--waiting on mem to do store(write)
+		stall<='1';
+		if mem_waitrequest='0' then
+			found_zero<='1';
+		elsif mem_waitrequest='1' and found_zero='1' then --found rising edge, data ready
+			found_zero<='0';
+			wait_for_data_store<='0';
 			stall<='1';
 		end if;
 	elsif (ex_load = '1') then --read from mem and put it into register
@@ -73,18 +86,19 @@ elsif (rising_edge(clk)) then
 
 		--dest reg is dest reg
 		--wait a cycles to retrieve mem
-		wait_for_data <='1';
+		wait_for_data_load <='1';
 		load_reg<=ex_dest_reg;
 		stall<='1';
 		
 	elsif (ex_store = '1') then --write to mem
-
+	
 		--dest_reg is address
 		mem_write <='1';
 		mem_addr <= ex_dest_reg;
-
+		wait_for_data_store<='1';
 		--result is data into address
 		mem_write_data <= ex_result;
+
 	else --pass EX data to WB stage
 		wb_data<=ex_result;
 		wb_dest_reg<=ex_dest_reg;
