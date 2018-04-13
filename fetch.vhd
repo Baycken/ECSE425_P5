@@ -9,6 +9,7 @@ generic(
 port(
 	clock : in std_logic;
 	reset : in std_logic;
+		if_id_test: out std_logic_vector(31 downto 0);
 
 	--communication with pc (getting and sending back the incremented one or the completely new pc)
 	addr : in std_logic_vector (31 downto 0);
@@ -42,6 +43,7 @@ signal instruction_read_sig : std_logic:='0';
 signal wait_req : std_logic;
 --signal s_write_sig : std_logic:='0';
 signal data : std_logic_vector(31 downto 0);
+signal program : std_logic_vector(31 downto 0):=x"20010003";
 
 component instr_mem
     GENERIC(
@@ -65,29 +67,13 @@ begin
 U1: component instr_mem port map (clock,s_writedata,pc_address,'0',instruction_read_sig,data,wait_req);
 	
 inst_get: process (clock)
-	begin
-		if (clock'event and clock='1') then 
-			if(pc_address < 1022) then
-				--instruction_read_sig <= '1';
-			--	wait for 1 ns;
-			--	instruction_read_sig <= '0';
-					if(hazard_detect = '0') then
-						if(ex_is_new_pc = '1') then 
-							pc_address <= to_integer(unsigned(ex_pc));
-						else
-							pc_address <= pc_address + 1;
-						end if;
-					else		
-						pc_address <= pc_address;
-					end if;
-				--instruction_read_sig <= '0';
-				--end if;	
-			end if;
-		end if;
-	end process;
-
-current_pc_to_dstage <= std_logic_vector(to_unsigned(pc_address,32));
---instruction_read <= instruction_read_sig;
-instruction <= data;
-
+variable pc : integer:=0;
+begin
+	if (clock'event and clock='1') then 
+		instruction <= program;
+		if_id_test <= program;
+		current_pc_to_dstage<= std_logic_vector(to_unsigned(pc, current_pc_to_dstage'length));
+		pc:=pc+1;
+	end if;
+end process;
 end arch;
