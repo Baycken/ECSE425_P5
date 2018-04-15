@@ -1,0 +1,182 @@
+LIBRARY IEEE;
+USE ieee.std_logic_1164.all;
+USE ieee.numeric_std.all;
+
+library std;
+use std.textio.all;
+
+
+
+ENTITY FETCH_STAGE is
+  generic (	ram_size : INTEGER := 32768;
+            INDEX: INTEGER:=32);
+  port (
+    f:string;
+    reset: IN std_logic;
+    STALL_BIT: IN STD_LOGIC;
+    IS_BRANCH: IN STD_LOGIC;
+    PIPELINE_FREEZE: OUT STD_LOGIC;
+    clk: IN std_logic;
+    NormalPC:IN STD_LOGIC_VECTOR(31 downto 0);
+    branch_con: IN std_logic;
+    branch_addr: IN std_logic_vector(31 downto 0);
+    NPC: INOUT std_logic_vector(31 downto 0);
+    F_ID_IR: INOUT std_logic_vector(31 downto 0)
+  );
+end FETCH_STAGE;
+
+architecture IMP of FETCH_STAGE is
+  --signals needed
+  constant file_name:string :=f;
+	--ftech process signals
+	Type instruction_memory is Array (ram_size-1 downto 0) OF STD_LOGIC_VECTOR(7 DOWNTO 0);
+	SIGNAL pc: integer:=-8;
+	SIGNAL MEM: instruction_memory;
+	
+	--branch predictor
+	TYPE BRANCH_TABLE IS ARRAY (31 DOWNTO 0) OF STD_LOGIC_VECTOR(1 DOWNTO 0);
+	SIGNAL BHT: BRANCH_TABLE:=("00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00", "00");
+	SIGNAL BRANCH_BIT: STD_LOGIC_VECTOR(1 DOWNTO 0):="00";
+	SIGNAL COUNTER: INTEGER:=0;
+	SIGNAL B_PC, B_PC1, B_PC2: INTEGER;
+	SIGNAL LOCK:  STD_LOGIC:='0';
+	
+
+BEGIN
+  
+  initilize: process(clk)
+  variable l:bit_vector(31 downto 0);
+	variable i: integer :=0;
+	variable li: line;
+	file instruction_program: text open READ_MODE is  f;
+  		begin
+  		IF(now < 1 ps) THEN
+
+
+    while not endfile(instruction_program) loop
+       readline(instruction_program, li);
+        read(li, l);
+  
+--  
+       MEM(i+3)<=to_StdlogicVector(l(31 downto 24));
+       MEM(i+2)<=to_StdlogicVector(l(23 downto 16));
+       MEM(i+1)<=to_StdlogicVector(l(15 downto 8));
+       MEM(i)<=to_StdlogicVector(l(7 downto 0));
+       i:=i+4;
+    end loop; 
+	end if;
+	
+  end process;
+  
+	   
+  fetch:process(clk)
+  
+  
+  
+  begin
+          
+  IF rising_edge(clk) then
+
+   IF STALL_BIT='0' THEN
+  
+      f_ID_IR<=MEM(pc+3) & MEM(pc+2) & MEM(pc+1) & MEM(pc);
+  ELSE
+    F_ID_IR<="00000000000000000000000000100000";
+   
+  END IF;
+    npc<=std_logic_vector(to_unsigned(pc, 32));
+    B_PC1<=B_PC;
+    B_PC2<=B_PC1;
+
+END IF;
+end process;
+
+PROCESS(NPC, RESET, BRANCH_CON, IS_BRANCH)
+  variable x: std_logic_Vector(31 downto 0);
+  VARIABLE IMM: STD_LOGIC_VECTOR(31 DOWNTO 0);
+  VARIABLE ADD: STD_LOGIC_VECTOR(31 DOWNTO 0);
+  VARIABLE T: STD_LOGIC_VECTOR(31 DOWNTO 0);
+    
+  BEGIN
+  IF COUNTER>0 THEN
+    COUNTER<=COUNTER-1;
+  ELSE
+    PIPELINE_FREEZE<='0';
+  END IF;
+  
+    IF RESET='1' THEN
+      PC<=0;
+
+    
+    ELSIF (IS_BRANCH='1') then
+    --CHECK FOR MISPREDICTION
+     
+        
+      IF(BRANCH_CON='1')  THEN
+        IF (LOCK='0'  AND (BHT(B_PC2/4 MOD INDEX)="00" OR BHT(B_PC2/4 MOD INDEX)="01")) THEN
+          COUNTER<=2;
+          PIPELINE_FREEZE<='1';
+          pc<=to_integer(unsigned(branch_addr));
+       END IF;
+        --UPDATE BRANCH
+        IF(LOCK='0' AND BHT(B_PC2/4 MOD INDEX)="00") THEN
+          BHT(B_PC2/4 MOD INDEX)<="01";
+        ELSIF(LOCK='0' AND BHT(B_PC2/4 MOD INDEX)="01") THEN
+          BHT(B_PC2/4 MOD INDEX)<="11";
+        ELSIF(LOCK='0' AND BHT(B_PC2/4 MOD INDEX)="10") THEN
+          BHT(B_PC2/4 MOD INDEX)<="11";
+        END IF;
+        
+      ELSIF(BRANCH_CON='0') THEN
+        IF (LOCK='0' AND (BHT(B_PC2/4 MOD INDEX)="11" OR BHT(B_PC2/4 MOD INDEX)="10")) THEN
+            COUNTER<=2;
+            PIPELINE_FREEZE<='1';
+            pc<=to_integer(unsigned(branch_addr));
+        END IF;
+           --UPDATE BRANCH
+        IF(LOCK='0' AND BHT(B_PC2/4 MOD INDEX)="11") THEN
+          BHT(B_PC2/4 MOD INDEX)<="10";
+        ELSIF(LOCK='0' AND BHT(B_PC2/4 MOD INDEX)="01") THEN
+          BHT(B_PC2/4 MOD INDEX)<="00";
+        ELSIF(LOCK='0' AND BHT(B_PC2/4 MOD INDEX)="10") THEN
+          BHT(B_PC2/4 MOD INDEX)<="00";
+        END IF;
+     END IF;
+      IF LOCK='0' THEN
+        LOCK<='1';
+      ELSE
+       LOCK<='0';
+       END IF;
+      ELSIF(STALL_BIT='1') THEN
+        PC<=PC-4;
+      ELSIF(f_ID_IR(31 downto 26)="000100" OR f_ID_IR(31 downto 26)="000101") then
+        IMM:=std_logic_vector(resize(signed(F_ID_IR (15 downto 0)), 32));
+        B_PC<=PC;
+        if(BHT(PC/4 MOD INDEX)="00" OR BHT(PC/4 MOD INDEX)="01") then
+           PC<=PC+4;
+             
+        ELSE
+          x:=to_stdlogicvector(to_bitvector(IMM) sll 2);
+          T:=STD_LOGIC_VECTOR(TO_UNSIGNED(PC, 32 ));
+          ADD:=std_logic_vector(SIGNED(T) + signed(x)+4);
+          pc<=to_integer(UNSIGNED(ADD));
+          --NPC<=std_logic_vector(to_unsigned(pc, 32)); 
+        end if;
+      --jump 
+       ELSIF(F_ID_IR(31 downto 26)="000010" or F_ID_IR(31 downto 26)="000011") then
+         
+           ADD:="000000" & to_stdlogicvector(to_bitvector(F_ID_IR(25 downto 0)) sll 2);
+           pc<=to_integer(UNSIGNED(ADD));
+       ELSIF(F_ID_IR(31 downto 26)="000000" and F_ID_IR(5 downto 0)="001000") then    --JUST DO NOT JUMP
+          B_PC<=PC;
+          BHT(PC/4 MOD INDEX)<="00";
+          PC<=PC+4;
+       
+       ELSIF(F_ID_IR/="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX") THEN
+         PC<=PC+4;     
+end if;
+
+
+  END PROCESS;
+
+end IMP;
