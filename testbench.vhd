@@ -137,7 +137,7 @@ port map(
 
 	clk_i => clk,
 	rst_i => reset,
-	mips_if_test => mips_if_test
+	mips_if_test => mips_if_test,
  
 	pc_o => pc_o,
 	inst_read_o => inst_read_o,
