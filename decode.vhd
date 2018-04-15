@@ -12,8 +12,8 @@ port(
 	--inputs
 	if_pc : in std_logic_vector(31 downto 0); --program counter
 	if_instr : in std_logic_vector (31 downto 0); --32 bit mips instruction
-	wb_register : in std_logic_vector(31 downto 0); --register to store wb_data
-	wb_data : in std_logic_vector(31 downto 0); --data from writeback stage to put into register
+	wb_register : in std_logic_vector(31 downto 0):=x"00000000"; --register to store wb_data
+	wb_data : in std_logic_vector(31 downto 0):=x"00000000"; --data from writeback stage to put into register
 	clk : in std_logic;
 	reset : in std_logic;
 
@@ -48,15 +48,16 @@ type data_array is array(31 downto 0) of std_logic_vector(31 downto 0);
 type bit_array is array(31 downto 0) of std_logic;
 
 signal registers : data_array;--32 registers of 32 bits
-signal write_busy : bit_array; --busy
+signal write_busy : bit_array;
 
-signal stall : std_logic;
+signal stall : std_logic:='0';
 
-signal no_instr : std_logic;
+signal no_instr : std_logic:='0';
 
-signal test : std_logic_vector(4 downto 0);
 
-signal is_load : std_logic;
+signal test : std_logic_vector(4 downto 0):="00000";
+
+signal is_load : std_logic:='0';
 
 begin
 
@@ -111,9 +112,12 @@ if reset = '1' then
 
 elsif rising_edge(clk) then
 	--write data to registers from the write back stage
-	registers(to_integer(unsigned(wb_register))) <= wb_data;
-	out_registers(32*(to_integer(unsigned(wb_register))+1)-1 downto 32*to_integer(unsigned(wb_register)))  <= registers(to_integer(unsigned(wb_register)));
-	write_busy(to_integer(unsigned(wb_register))) <= '0';
+	out_registers(31 downto 0) <= x"00000000"; -- fix undefined issue
+
+		registers(to_integer(unsigned(wb_register))) <= wb_data;
+		out_registers(32*(to_integer(unsigned(wb_register))+1)-1 downto 32*to_integer(unsigned(wb_register)))  <= registers(to_integer(unsigned(wb_register)));
+		write_busy(to_integer(unsigned(wb_register))) <= '0';
+		out_registers(31 downto 0) <= x"00000000"; -- fix undefined issue
 
 	hazard<= '0';--reset hazard. It will be asserted again if a hazard persists.
 	
