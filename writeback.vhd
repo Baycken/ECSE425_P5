@@ -9,8 +9,8 @@ port(
 	mem_register : in std_logic_vector(31 downto 0);
 	mem_data : in std_logic_vector(31 downto 0);
 	
-	id_register : out std_logic_vector(31 downto 0);
-	id_data : out std_logic_vector(31 downto 0)
+	id_register : out std_logic_vector(31 downto 0):=x"00000000";
+	id_data : out std_logic_vector(31 downto 0):=x"00000000"
 
 );
 end writeback;
